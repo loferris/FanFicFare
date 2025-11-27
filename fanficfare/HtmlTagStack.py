@@ -18,6 +18,7 @@
 from __future__ import absolute_import
 
 import re
+from .six import text_type as unicode
 
 stack = []
 
