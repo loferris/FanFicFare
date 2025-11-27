@@ -35,3 +35,6 @@ FanFicFare.egg-info
 personal.ini
 appcfg_oauth2_tokens
 venv/
+.coverage
+htmlcov/
+.pytest_cache/
