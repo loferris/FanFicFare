@@ -43,6 +43,14 @@ if sys.version_info >= (2, 7):
 
 logger = logging.getLogger('fanficfare')
 
+# Fast HTML parsing: Use lxml instead of html5lib for 3-5x speedup
+try:
+    from fanficfare_performance.core.html_parser import monkey_patch_beautifulsoup
+    monkey_patch_beautifulsoup(enable=True)
+    logger.info("Fast HTML parsing enabled (lxml with html5lib fallback)")
+except ImportError:
+    logger.debug("fanficfare_performance not available, using default parsers")
+
 from fanficfare import adapters, writers, exceptions
 from fanficfare.configurable import Configuration
 from fanficfare.epubutils import (
