@@ -1,0 +1,41 @@
+# ChiReads.com
+# Translation site for Chinese web novels
+# https://chireads.com
+
+name: "ChiReads"
+
+domains:
+  - chireads.com
+
+encoding: utf-8
+
+# URL pattern
+story_url_pattern: '/category/translatedtales/(?P<story_id>[^/]+)'
+
+rate_limit: 2.0
+
+# Selectors based on actual ChiReads site structure
+selectors:
+  story:
+    # Basic info
+    title: ".inform-inform-data h3"
+    author: ".inform-inform-data h6"
+    summary: ".inform-inform-txt span"
+
+    # Cover image
+    cover: ".inform-product > img"
+
+    # Latest update
+    updated: ".newestchapitre > div > a"
+
+    # Chapter list
+    chapter_list: "#content a"
+
+  chapter:
+    content: ".entry-content"
+
+options:
+  # Remove specific text patterns
+  remove_patterns:
+    - "Babelcheck"
+    - "Auteur :"

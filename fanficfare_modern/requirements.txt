@@ -1,0 +1,15 @@
+# FanFicFare Modern Adapter System - Requirements
+
+# Core dependencies
+pydantic>=2.5.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+pyyaml>=6.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Optional: for production use
+# httpx>=0.27.0  # Modern async HTTP client
+# selectolax>=0.3.0  # Fast HTML parser

@@ -1,0 +1,76 @@
+# Archive of Our Own (AO3)
+# One of the largest fanfiction archives
+# https://archiveofourown.org
+
+name: "Archive of Our Own"
+
+domains:
+  - archiveofourown.org
+  - archiveofourown.com
+  - archiveofourown.net
+  - archiveofourown.gay
+  - ao3.org
+  - download.archiveofourown.org
+
+platform: ao3
+encoding: utf-8
+
+# URL pattern to match story URLs
+story_url_pattern: '/works/(?P<story_id>\d+)'
+
+# Rate limiting (requests per second)
+rate_limit: 2.0
+
+# CSS selectors for extracting metadata
+selectors:
+  story:
+    # Basic metadata
+    title: "h2.title"
+    author: "a[rel='author']"
+    summary: "div.summary blockquote"
+
+    # Content rating and warnings
+    rating: "dd.rating tags a"
+    warnings: "dd.warning tags a"
+
+    # Categories and relationships
+    category: "dd.category tags a"
+    relationships: "dd.relationship tags a"
+    characters: "dd.character tags a"
+    tags: "dd.freeform tags a"
+
+    # Story stats
+    language: "dd.language"
+    words: "dd.words"
+    chapters: "dd.chapters"  # Text like "5/?" or "12/12"
+    comments: "dd.comments"
+    kudos: "dd.kudos"
+    bookmarks: "dd.bookmarks"
+    hits: "dd.hits"
+
+    # Dates
+    published: "dd.published time[datetime]"
+    updated: "dd.status time[datetime]"
+
+    # Chapter list
+    chapter_list: "select#selected_id option"
+
+    # Cover image
+    cover: "div.header img"
+
+  chapter:
+    title: "h3.title"
+    content: "div#workskin div.userstuff"
+    notes_before: "div.notes:first-of-type"
+    notes_after: "div.end.notes"
+
+# Optional: Site-specific options
+options:
+  # Use adult content view
+  use_adult_view: true
+
+  # Include author notes
+  include_notes: true
+
+  # Series support
+  supports_series: true

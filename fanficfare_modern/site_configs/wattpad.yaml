@@ -1,0 +1,46 @@
+# Wattpad
+# Popular social storytelling platform
+# https://www.wattpad.com
+
+name: "Wattpad"
+
+domains:
+  - wattpad.com
+  - www.wattpad.com
+
+platform: wattpad  # Custom platform
+encoding: utf-8
+
+story_url_pattern: '/story/(?P<story_id>\d+)'
+
+rate_limit: 1.0  # Be nice to Wattpad
+
+selectors:
+  story:
+    title: "h1.story-title"
+    author: "a.username"
+    summary: "pre.description"
+
+    # Story metadata
+    category: "a.tag"
+    rating: "span.rating"
+    reads: "span.reads"
+    votes: "span.votes"
+    comments: "span.comments"
+
+    # Dates
+    updated: "time[datetime]"
+
+    # Chapters
+    chapter_list: "ul.table-of-contents a.story-part"
+
+  chapter:
+    title: "h1.h2"
+    content: "div.part-content"
+
+options:
+  # Wattpad uses JavaScript heavily
+  requires_javascript: true
+
+  # Include vote/comment counts
+  include_stats: true
