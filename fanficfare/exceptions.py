@@ -1,4 +1,9 @@
-# -*- coding: utf-8 -*-
+"""Custom exception classes for FanFicFare.
+
+This module defines all custom exceptions used throughout the FanFicFare
+application for handling various error conditions during story downloads
+and processing.
+"""
 
 # Copyright 2011 Fanficdownloader team, 2018 FanFicFare team
 #
@@ -13,138 +18,378 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-from __future__ import absolute_import
+from typing import List, Optional
 
-## A few exceptions for different things for adapters
 
 class FailedToDownload(Exception):
-    def __init__(self,error):
-        self.error=error
+    """Raised when story download fails.
 
-    def __str__(self):
-        return self.error
+    Attributes:
+        error: Description of the download failure
+    """
+
+    def __init__(self, error: str) -> None:
+        """Initialize with error message.
+
+        Args:
+            error: Description of what failed during download
+        """
+        self.error = error
+        super().__init__(error)
+
+    def __str__(self) -> str:
+        """Return error message as string."""
+        return str(self.error)
+
 
 class AccessDenied(Exception):
-    def __init__(self,error):
-        self.error=error
+    """Raised when access to a story or resource is denied.
 
-    def __str__(self):
-        return self.error
+    Attributes:
+        error: Description of the access denial
+    """
+
+    def __init__(self, error: str) -> None:
+        """Initialize with error message.
+
+        Args:
+            error: Description of why access was denied
+        """
+        self.error = error
+        super().__init__(error)
+
+    def __str__(self) -> str:
+        """Return error message as string."""
+        return str(self.error)
+
 
 class RejectImage(Exception):
-    def __init__(self,error):
-        self.error=error
+    """Raised when an image is rejected during processing.
 
-    def __str__(self):
-        return self.error
+    Attributes:
+        error: Reason for image rejection
+    """
+
+    def __init__(self, error: str) -> None:
+        """Initialize with rejection reason.
+
+        Args:
+            error: Reason why the image was rejected
+        """
+        self.error = error
+        super().__init__(error)
+
+    def __str__(self) -> str:
+        """Return rejection reason as string."""
+        return str(self.error)
+
 
 class InvalidStoryURL(Exception):
-    def __init__(self,url,domain,example):
-        self.url=url
-        self.domain=domain
-        self.example=example
+    """Raised when a story URL doesn't match expected format.
 
-    def __str__(self):
-        return "Bad Story URL: (%s) for site: (%s) Example: (%s)" % (self.url, self.domain, self.example)
+    Attributes:
+        url: The invalid URL provided
+        domain: The expected domain/site
+        example: An example of a valid URL
+    """
+
+    def __init__(self, url: str, domain: str, example: str) -> None:
+        """Initialize with URL details.
+
+        Args:
+            url: The invalid URL that was provided
+            domain: The expected domain/site name
+            example: An example of a valid URL for this site
+        """
+        self.url = url
+        self.domain = domain
+        self.example = example
+        message = f"Bad Story URL: ({url}) for site: ({domain}) Example: ({example})"
+        super().__init__(message)
+
+    def __str__(self) -> str:
+        """Return formatted error message."""
+        return f"Bad Story URL: ({self.url}) for site: ({self.domain}) Example: ({self.example})"
+
 
 class FailedToLogin(Exception):
-    def __init__(self,url, username, passwdonly=False):
-        self.url=url
-        self.username=username
-        self.passwdonly=passwdonly
+    """Raised when login to a site fails.
 
-    def __str__(self):
+    Attributes:
+        url: The URL that required login
+        username: The username that was used
+        passwdonly: Whether only password was required (no username)
+    """
+
+    def __init__(self, url: str, username: str, passwdonly: bool = False) -> None:
+        """Initialize with login details.
+
+        Args:
+            url: The URL that required authentication
+            username: The username attempted for login
+            passwdonly: If True, only password was required (not username)
+        """
+        self.url = url
+        self.username = username
+        self.passwdonly = passwdonly
+        super().__init__(f"Failed to login for {url}")
+
+    def __str__(self) -> str:
+        """Return formatted error message."""
         if self.passwdonly:
-            return "URL Failed, password required: (%s) " % (self.url)
+            return f"URL Failed, password required: ({self.url})"
         else:
-            return "Failed to Login for URL: (%s) with username: (%s)" % (self.url, self.username)
+            return f"Failed to Login for URL: ({self.url}) with username: ({self.username})"
+
 
 class NeedTimedOneTimePassword(Exception):
-    def __init__(self,url):
-        self.url=url
+    """Raised when two-factor authentication (2FA/TOTP) is required.
 
-    def __str__(self):
-        return "Timed One Time Password(TOTP) required for 2 Factor Authentication(2FA): (%s) " % (self.url)
+    Attributes:
+        url: The URL requiring 2FA
+    """
+
+    def __init__(self, url: str) -> None:
+        """Initialize with URL requiring 2FA.
+
+        Args:
+            url: The URL that requires TOTP authentication
+        """
+        self.url = url
+        super().__init__(f"TOTP required for {url}")
+
+    def __str__(self) -> str:
+        """Return formatted error message."""
+        return f"Timed One Time Password(TOTP) required for 2 Factor Authentication(2FA): ({self.url})"
+
 
 class AdultCheckRequired(Exception):
-    def __init__(self,url):
-        self.url=url
+    """Raised when story requires adult content confirmation.
 
-    def __str__(self):
-        return "Story requires confirmation of adult status: (%s)" % self.url
+    Attributes:
+        url: The URL requiring adult confirmation
+    """
+
+    def __init__(self, url: str) -> None:
+        """Initialize with URL requiring adult check.
+
+        Args:
+            url: The URL requiring adult status confirmation
+        """
+        self.url = url
+        super().__init__(f"Adult check required for {url}")
+
+    def __str__(self) -> str:
+        """Return formatted error message."""
+        return f"Story requires confirmation of adult status: ({self.url})"
+
 
 class StoryDoesNotExist(Exception):
-    def __init__(self,url):
-        self.url=url
+    """Raised when a story cannot be found at the given URL.
 
-    def __str__(self):
-        return "Story does not exist: (%s)" % self.url
+    Attributes:
+        url: The URL where story was not found
+    """
+
+    def __init__(self, url: str) -> None:
+        """Initialize with story URL.
+
+        Args:
+            url: The URL where the story was expected but not found
+        """
+        self.url = url
+        super().__init__(f"Story does not exist: {url}")
+
+    def __str__(self) -> str:
+        """Return formatted error message."""
+        return f"Story does not exist: ({self.url})"
+
 
 class UnknownSite(Exception):
-    def __init__(self,url,supported_sites_list):
-        self.url=url
-        self.supported_sites_list=supported_sites_list
-        self.supported_sites_list.sort()
+    """Raised when URL is from an unsupported site.
 
-    def __str__(self):
-        return "Unknown Site(%s).  Supported sites: (%s)" % (self.url, ", ".join(self.supported_sites_list))
+    Attributes:
+        url: The unsupported URL
+        supported_sites_list: List of supported site domains
+    """
+
+    def __init__(self, url: str, supported_sites_list: List[str]) -> None:
+        """Initialize with URL and supported sites list.
+
+        Args:
+            url: The URL from an unsupported site
+            supported_sites_list: List of supported site domains
+        """
+        self.url = url
+        self.supported_sites_list = sorted(supported_sites_list)
+        super().__init__(f"Unknown site: {url}")
+
+    def __str__(self) -> str:
+        """Return formatted error message with supported sites."""
+        sites = ", ".join(self.supported_sites_list)
+        return f"Unknown Site({self.url}). Supported sites: ({sites})"
+
 
 class FailedToWriteOutput(Exception):
-    def __init__(self,error):
-        self.error=error
+    """Raised when output file cannot be written.
 
-    def __str__(self):
-        return self.error
+    Attributes:
+        error: Description of the write failure
+    """
+
+    def __init__(self, error: str) -> None:
+        """Initialize with error message.
+
+        Args:
+            error: Description of why the write failed
+        """
+        self.error = error
+        super().__init__(error)
+
+    def __str__(self) -> str:
+        """Return error message as string."""
+        return str(self.error)
+
 
 class PersonalIniFailed(Exception):
-    def __init__(self,error,part,line):
-        self.error=error
-        self.part=part
-        self.line=line
+    """Raised when personal.ini configuration file has errors.
 
-    def __str__(self):
-        return "personal.ini Error '%s' in '%s' in line '%s'"%(self.error,self.part,self.line)
+    Attributes:
+        error: The error description
+        part: The section/part of the ini file with the error
+        line: The line number with the error
+    """
+
+    def __init__(self, error: str, part: str, line: str) -> None:
+        """Initialize with error details.
+
+        Args:
+            error: Description of the error
+            part: The section/part of the ini file
+            line: The line number where error occurred
+        """
+        self.error = error
+        self.part = part
+        self.line = line
+        super().__init__(f"personal.ini error: {error}")
+
+    def __str__(self) -> str:
+        """Return formatted error message."""
+        return f"personal.ini Error '{self.error}' in '{self.part}' in line '{self.line}'"
+
 
 class RegularExpresssionFailed(PersonalIniFailed):
-    def __init__(self,error,part,line):
-        PersonalIniFailed.__init__(self,error,part,line)
+    """Raised when a regular expression in personal.ini is invalid.
 
-    def __str__(self):
-        return "Regular Expression Error '%s' in part '%s' in line '%s'"%(self.error,self.part,self.line)
+    Attributes:
+        error: The regex error description
+        part: The section/part of the ini file with the error
+        line: The line number with the error
+    """
+
+    def __init__(self, error: str, part: str, line: str) -> None:
+        """Initialize with regex error details.
+
+        Args:
+            error: Description of the regex error
+            part: The section/part of the ini file
+            line: The line number where error occurred
+        """
+        super().__init__(error, part, line)
+
+    def __str__(self) -> str:
+        """Return formatted error message."""
+        return f"Regular Expression Error '{self.error}' in part '{self.part}' in line '{self.line}'"
+
 
 class FetchEmailFailed(Exception):
-    def __init__(self,error):
-        self.error=error
+    """Raised when email fetching fails.
 
-    def __str__(self):
-        return self.error
+    Attributes:
+        error: Description of the fetch failure
+    """
+
+    def __init__(self, error: str) -> None:
+        """Initialize with error message.
+
+        Args:
+            error: Description of why email fetch failed
+        """
+        self.error = error
+        super().__init__(error)
+
+    def __str__(self) -> str:
+        """Return error message as string."""
+        return str(self.error)
+
 
 class CacheCleared(Exception):
-    def __init__(self,error):
-        self.error=error
+    """Raised when cache is cleared (informational exception).
 
-    def __str__(self):
-        return self.error
+    Attributes:
+        error: Description of cache clearing
+    """
+
+    def __init__(self, error: str) -> None:
+        """Initialize with message.
+
+        Args:
+            error: Description of cache clearing operation
+        """
+        self.error = error
+        super().__init__(error)
+
+    def __str__(self) -> str:
+        """Return message as string."""
+        return str(self.error)
+
 
 class HTTPErrorFFF(Exception):
-    def __init__(self,
-                 url,
-                 status_code,
-                 error_msg,
-                 data=None):
+    """Raised when HTTP request fails.
+
+    Attributes:
+        url: The URL that failed
+        status_code: HTTP status code
+        error_msg: Error message from the request
+        data: Optional response data
+    """
+
+    def __init__(
+        self,
+        url: str,
+        status_code: int,
+        error_msg: str,
+        data: Optional[bytes] = None
+    ) -> None:
+        """Initialize with HTTP error details.
+
+        Args:
+            url: The URL that returned an error
+            status_code: The HTTP status code (e.g., 404, 500)
+            error_msg: Descriptive error message
+            data: Optional response body data
+        """
         self.url = url
         self.status_code = status_code
         self.error_msg = error_msg
         self.data = data
+        super().__init__(f"HTTP {status_code}: {error_msg}")
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """Return formatted error message.
+
+        Avoids duplicating URL if it's already in the error message.
+        """
         if self.url in self.error_msg:
-            return "HTTP Error in FFF '%s'(%s)"%(self.error_msg,self.status_code)
+            return f"HTTP Error in FFF '{self.error_msg}'({self.status_code})"
         else:
-            return "HTTP Error in FFF '%s'(%s) URL:'%s'"%(self.error_msg,self.status_code,self.url)
+            return f"HTTP Error in FFF '{self.error_msg}'({self.status_code}) URL:'{self.url}'"
+
 
 class BrowserCacheException(Exception):
-    pass
+    """Raised when browser cache operations fail.
 
+    This is a base exception for browser cache-related errors.
+    """
+    pass
