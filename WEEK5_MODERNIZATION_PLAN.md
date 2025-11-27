@@ -5,11 +5,11 @@
 **Principle**: Modernize modules with high test coverage first, so we can verify nothing breaks.
 
 **Order of Modernization** (by test coverage):
-1. ✅ exceptions.py - 100% coverage (30 tests)
-2. ✅ HtmlTagStack.py - 100% coverage (43 tests)
-3. ✅ translit.py - 97.67% coverage (43 tests)
-4. ✅ dateutils.py - 97.26% coverage (31 tests)
-5. ✅ htmlcleanup.py - 86.92% coverage (46 tests)
+1. ✅ exceptions.py - 100% coverage (30 tests) - COMPLETE
+2. ✅ HtmlTagStack.py - 100% coverage (43 tests) - COMPLETE
+3. ✅ translit.py - 100% coverage (43 tests) - COMPLETE (improved from 97.67%)
+4. ✅ dateutils.py - 97.26% coverage (31 tests) - COMPLETE
+5. ⏳ htmlcleanup.py - 86.92% coverage (46 tests) - IN PROGRESS (needs incremental approach)
 6. ⏳ Other modules as coverage increases
 
 ## Modernization Checklist
