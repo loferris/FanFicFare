@@ -123,6 +123,13 @@ dependencies = [ # Optional
 # projects.
 [project.optional-dependencies] # Optional
 image_processing = ['Pillow >= 3.3.0']
+dev = [
+    'pytest >= 7.4.0',
+    'pytest-cov >= 4.1.0',
+    'pytest-mock >= 3.11.1',
+    'responses >= 0.23.0',
+    'freezegun >= 1.2.0',
+]
 
 # List URLs that are relevant to your project
 #
