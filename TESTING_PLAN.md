@@ -615,43 +615,91 @@ jobs:
 
 ## Implementation Timeline
 
-### Week 1: Setup
+### Week 1: Testing Infrastructure Setup
+
+**Goal:** Get pytest working, first tests passing
 
 - [x] Document testing plan
 - [ ] Install pytest and dependencies
 - [ ] Set up project structure (tests/ directory)
 - [ ] Configure pytest.ini and .coveragerc
-- [ ] Set up GitHub Actions
+- [ ] Set up GitHub Actions (basic)
+- [ ] Write first adapter test (AO3) to validate setup
+- [ ] Collect initial fixtures
 
-### Week 2-3: Unit Tests
+**Deliverable:** pytest runs successfully, 1-2 tests pass
 
-- [ ] Write adapter tests (AO3, FFN, top 5 sites)
-- [ ] Write writer tests (EPUB generation)
-- [ ] Write utility tests (config, helpers)
-- [ ] Collect fixtures from real sites
-- [ ] Target: 60% coverage
+### Week 2-3: Core Unit Tests (Test Existing Code)
+
+**Goal:** 60% coverage of existing codebase AS-IS
+
+- [ ] Write adapter tests (AO3, FFN, Wattpad, RoyalRoad, SpaceBattles)
+- [ ] Write writer tests (EPUB, MOBI, HTML)
+- [ ] Write utility tests (config, helpers, URL parsing)
+- [ ] Collect comprehensive fixtures from real sites
+- [ ] Test CLI entry points
+- [ ] Test update logic (oldchaptersmap)
+
+**Important:** Test the code EXACTLY as it exists now!
+**No refactoring yet!** Just document current behavior.
+
+**Deliverable:** 60%+ coverage, all tests green
 
 ### Week 4: Integration Tests
 
-- [ ] Write download flow tests
-- [ ] Write update flow tests
-- [ ] Test performance optimizations
-- [ ] Target: 75% coverage
+**Goal:** 75% coverage, test complete workflows
 
-### Week 5: Polish & Documentation
+- [ ] Write download flow tests (URL → metadata → chapters → EPUB)
+- [ ] Write update flow tests (existing EPUB → check for new chapters → update)
+- [ ] Test performance optimizations (verify they still work)
+- [ ] Test error handling paths
+- [ ] Test edge cases (deleted stories, private stories, etc.)
 
-- [ ] Write remaining tests for edge cases
-- [ ] Document how to run tests
-- [ ] Document how to add new tests
-- [ ] Set up coverage reporting
-- [ ] Target: 80%+ coverage
+**Deliverable:** 75%+ coverage, integration tests pass
 
-### Week 6: CI/CD & Release
+### Week 5: Modernization WITH Test Safety Net
 
-- [ ] Finalize GitHub Actions
-- [ ] Set up automated releases
+**Goal:** Add type hints, refactor, improve code while keeping tests green
+
+- [ ] Add type hints to core modules
+  - Run tests after each module
+  - Fix any issues found
+- [ ] Refactor to modern patterns
+  - Async/await where beneficial
+  - Context managers for resources
+  - Dataclasses for story metadata
+  - Run tests continuously
+- [ ] Improve error handling
+  - Better exception types
+  - Clearer error messages
+  - Tests verify errors raised correctly
+- [ ] Code cleanup
+  - Remove dead code (tests will break if still used)
+  - Consolidate duplicates
+  - Fix linting issues
+
+**Key:** After EVERY change → run tests → ensure green
+
+**Deliverable:** Modernized code, all tests still passing
+
+### Week 6: Polish, Documentation & Release
+
+**Goal:** Production-ready v1.0 release
+
+- [ ] Final test coverage push (aim for 85%)
+- [ ] Write remaining edge case tests
+- [ ] Performance regression tests
+- [ ] Document testing approach
+- [ ] Document code architecture (now that it's modern)
+- [ ] Finalize CI/CD pipeline
+  - Tests on PR
+  - Coverage reporting
+  - Automated releases
+- [ ] Update README with new features
 - [ ] Tag v1.0.0 release
 - [ ] Announce to community
+
+**Deliverable:** FanFicFare v1.0 - Tested, Modern, Fast!
 
 ---
 
