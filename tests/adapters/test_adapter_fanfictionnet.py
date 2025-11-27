@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import patch
 from fanficfare.exceptions import HTTPErrorFFF
 
-from fanficfare.adapters.adapter_fanfictionnet import FanFictionNetAdapter as ffnadapter
+from fanficfare.adapters.adapter_fanfictionnet import FanFictionNetSiteAdapter as ffnadapter
 from tests.adapters.generic_adapter_test import GenericAdapterTestExtractChapterUrlsAndMetadata, GenericAdapterTestGetChapterText
 from tests.conftest import ffn_story_page_html, ffn_chapter_1_html
 
@@ -12,7 +12,7 @@ SPECIFIC_TEST_DATA = {
     'adapter': ffnadapter,
     'url': 'https://www.fanfiction.net/s/4536005/1/',
     'sections': ["fanfiction.net"],
-    'specific_path_adapter': 'adapter_fanfictionnet.FanFictionNetAdapter',
+    'specific_path_adapter': 'adapter_fanfictionnet.FanFictionNetSiteAdapter',
 
     # Expected metadata (TODO: Update with real values from fixture)
     'title': 'Test FFN Story Title',
