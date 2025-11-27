@@ -51,6 +51,14 @@ try:
 except ImportError:
     logger.debug("fanficfare_performance not available, using default parsers")
 
+# DNS caching: Cache DNS lookups for faster repeat requests
+try:
+    from fanficfare_performance.core.dns_cache import enable_dns_cache
+    enable_dns_cache()
+    logger.info("DNS caching enabled (saves 1-2s per story)")
+except ImportError:
+    logger.debug("DNS caching not available")
+
 from fanficfare import adapters, writers, exceptions
 from fanficfare.configurable import Configuration
 from fanficfare.epubutils import (
