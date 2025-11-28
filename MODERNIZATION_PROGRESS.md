@@ -15,8 +15,8 @@ This document tracks the progress of modernizing the FanFicFare codebase from Py
 
 ## Progress Summary
 
-**Total Test Count**: 255 tests (all passing)
-**Overall Coverage**: ~28% (target: 80%+)
+**Total Test Count**: 322 tests (all passing)
+**Overall Coverage**: ~32% (target: 80%+)
 
 ### Completed Modules ✅
 
@@ -71,13 +71,30 @@ This document tracks the progress of modernizing the FanFicFare codebase from Py
    - 385 lines of complex HTML manipulation logic
    - Main function `replace_br_with_p` (230 lines) tested and functional
 
+8. **mobihtml.py** - 100% coverage (29 tests) ✅
+   - MOBI format HTML processing for ebook generation
+   - Type hints on all methods (class-based module)
+   - Comprehensive docstrings with implementation notes
+   - Fixed deprecated BeautifulSoup method (replaceWith → replace_with)
+   - Handles internal anchors, pre-formatted text, MOBI tags
+   - Used exclusively by mobi.py writer
+
+9. **geturls.py** - 66.67% coverage (38 tests) ✅
+   - URL extraction from web pages, text, email, MIME data
+   - Type hints on all 7 functions
+   - Google-style docstrings with comprehensive examples
+   - Removed six library imports
+   - Converted all % formatting to f-strings
+   - IMAP email processing, Calibre drag-and-drop support
+   - Site-specific URL cleanup and normalization
+
 ## Modernization Statistics
 
 ### By Module Type
 
 | Module Type | Count | Status |
 |-------------|-------|--------|
-| Core Utilities | 7 | ✅ Complete |
+| Core Utilities | 9 | ✅ Complete |
 | Adapters | 93+ | ⏳ Pending |
 | Configuration | 2 | ⏳ Pending |
 | Writers | 10+ | ⏳ Pending |
@@ -93,7 +110,9 @@ This document tracks the progress of modernizing the FanFicFare codebase from Py
 | htmlcleanup.py | 46 | 93.26% | ✅ |
 | requestable.py | 20 | 96.97% | ✅ |
 | htmlheuristics.py | 42 | 97.04% | ✅ |
-| **Total** | **255** | **~96%** (for modernized modules) | ✅ |
+| mobihtml.py | 29 | 100% | ✅ |
+| geturls.py | 38 | 66.67% | ✅ |
+| **Total** | **322** | **~91%** (for modernized modules) | ✅ |
 
 ## Modernization Patterns Established
 
@@ -169,7 +188,9 @@ tests/
 │   ├── test_dateutils.py (31 tests)
 │   ├── test_htmlcleanup.py (46 tests)
 │   ├── test_requestable.py (20 tests)
-│   └── test_htmlheuristics.py (42 tests)
+│   ├── test_htmlheuristics.py (42 tests)
+│   ├── test_mobihtml.py (29 tests)
+│   └── test_geturls.py (38 tests)
 └── adapters/ (93 tests - existing)
 ```
 
@@ -186,13 +207,14 @@ tests/
 ### Immediate (Next Session)
 
 1. **Continue Core Utilities Modernization**
-   - `mobihtml.py` (5.5K) - MOBI format processing
    - `story.py` (78K) - Main story class (large, complex)
    - `configurable.py` (52K) - Configuration management
+   - `mobi.py` (13K) - MOBI writer (depends on mobihtml.py)
+   - `epubutils.py` (22K) - EPUB utilities
 
 2. **Expand Test Coverage**
    - Write unit tests for above modules
-   - Increase overall coverage from ~28% toward 40%
+   - Increase overall coverage from ~32% toward 45%
 
 3. **Documentation**
    - Add docstrings to main functions in partially modernized modules
@@ -230,14 +252,15 @@ tests/
 ### Velocity
 
 - **Week 5**: 5 modules modernized (exceptions, HtmlTagStack, translit, dateutils, htmlcleanup)
-- **Current Session**: 2 modules modernized (requestable, htmlheuristics)
-- **Average**: ~3-4 modules per session for small-to-medium modules
+- **Previous Session**: 2 modules modernized (requestable, htmlheuristics)
+- **Current Session**: 2 modules modernized (mobihtml, geturls)
+- **Average**: ~2-3 modules per session for small-to-medium modules
 
 ### Quality Indicators
 
 - ✅ Zero test regressions
-- ✅ 96%+ coverage on modernized modules
-- ✅ All 255 tests passing
+- ✅ 91%+ average coverage on modernized modules
+- ✅ All 322 tests passing
 - ✅ Type hints on all public APIs
 - ✅ Comprehensive docstrings with examples
 
@@ -249,10 +272,10 @@ tests/
    - Safety net of comprehensive tests
 
 2. **High-Quality Test Suite**
-   - 255 tests covering core utilities
+   - 322 tests covering core utilities
    - Edge cases and error conditions
    - Unicode and encoding scenarios
-   - Mocked external dependencies
+   - Mocked external dependencies (IMAP, HTTP, Qt)
 
 3. **Modern Python Codebase**
    - Pure Python 3.8+
@@ -281,6 +304,6 @@ tests/
 
 ## Conclusion
 
-Excellent progress on FanFicFare modernization. 7 core utility modules now fully modernized with comprehensive tests and type hints. The established patterns and test infrastructure provide a solid foundation for modernizing the remaining codebase.
+Excellent progress on FanFicFare modernization. 9 core utility modules now fully modernized with comprehensive tests and type hints. The established patterns and test infrastructure provide a solid foundation for modernizing the remaining codebase.
 
-**Next Focus**: Continue core utilities (mobihtml, story, configurable), then move to high-usage adapters.
+**Next Focus**: Continue core utilities (story, configurable, mobi, epubutils), then move to high-usage adapters.
