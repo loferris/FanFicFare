@@ -1,48 +1,66 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+"""HTML processing for MOBI format ebook generation.
 
-# Copyright(c) 2009 Andrew Chatham and Vijay Pandurangan
-# Changes Copyright 2018 FanFicFare team
+This module processes HTML content specifically for the MOBI ebook format,
+handling internal anchors, pre-formatted text, and MOBI-specific tags.
+Used exclusively by mobi.py.
 
-## This module is used by mobi.py exclusively.
-## Renamed Jul 2018 to avoid conflict with other 'html' packages
-from __future__ import absolute_import
+Note:
+    Renamed July 2018 to avoid conflict with other 'html' packages.
 
-import re
+Original Copyright (c) 2009 Andrew Chatham and Vijay Pandurangan
+Changes Copyright 2018 FanFicFare team
+"""
+
 import logging
+import re
+from typing import List, Optional, Tuple
+from urllib.parse import unquote
 
-# py2 vs py3 transition
-from .six.moves.urllib.parse import unquote
-from .six import text_type as unicode
-from .six import ensure_binary
-
-# import bs4
-# BeautifulSoup = bs4.BeautifulSoup
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
 class HtmlProcessor:
-  WHITESPACE_RE = re.compile(r'\s')
-  # Look for </blockquote  <p>
-  #BAD_TAG_RE = re.compile(r'<[^>]+<', re.MULTILINE)
+    """Process HTML content for MOBI ebook format.
 
-  def __init__(self, html, unfill=0):
-    self.unfill = unfill
-#    html = self._ProcessRawHtml(html)
-    self._soup = BeautifulSoup(html,'html5lib')
-    # logger.debug(html)
-    ## mobi format wants to find this <guide> tag inside <head>.
-    ## html5lib, on the other hand, moved it to <body>.  So we'll move
-    ## it back.
-    guide = self._soup.find('guide')
-    if guide:
-      self._soup.head.append(guide)
-    # logger.debug(self._soup)
-    if self._soup.title.contents:
-      self.title = self._soup.title.contents[0]
-    else:
-      self.title = None
+    Handles internal anchors, pre-formatted text, and MOBI-specific tag
+    conversions. Removes unsupported tags and fixes HTML structure for
+    optimal MOBI rendering.
+
+    Attributes:
+        WHITESPACE_RE: Regex pattern for matching whitespace
+        unfill: Flag for paragraph vs line break mode (0=br, 1=p)
+        title: Extracted title from HTML
+        _soup: BeautifulSoup parsed HTML document
+        _anchor_references: List of (anchor_num, href) tuples for internal links
+    """
+
+    WHITESPACE_RE = re.compile(r'\s')
+
+    def __init__(self, html: str, unfill: int = 0) -> None:
+        """Initialize HTML processor with content.
+
+        Args:
+            html: HTML content to process
+            unfill: Paragraph mode flag (0 for line breaks, 1 for paragraphs)
+
+        Note:
+            Moves <guide> tag from <body> to <head> for MOBI compatibility.
+            html5lib parser automatically moves it to body, so we fix it.
+        """
+        self.unfill = unfill
+        self._soup = BeautifulSoup(html, 'html5lib')
+
+        # MOBI format wants <guide> tag inside <head>
+        # html5lib moves it to <body>, so we move it back
+        guide = self._soup.find('guide')
+        if guide:
+            self._soup.head.append(guide)
+
+        if self._soup.title.contents:
+            self.title = self._soup.title.contents[0]
+        else:
+            self.title = None
 
   # Unnecessary with BS4
   # def _ProcessRawHtml(self, html):
@@ -51,100 +69,169 @@ class HtmlProcessor:
   #     print >>sys.stderr, 'Replaced %d bad tags' % count
   #   return new_html
 
-  def _StubInternalAnchors(self):
-    '''Replace each internal anchor with a fixed-size filepos anchor.
+    def _StubInternalAnchors(self) -> None:
+        """Replace internal anchors with fixed-size filepos placeholders.
 
-    Looks for every anchor with <a href="#myanchor"> and replaces that
-    with <a filepos="00000000050">. Stores anchors in self._anchor_references'''
-    self._anchor_references = []
-    anchor_num = 0
-    # anchor links
-    anchorlist = self._soup.find_all('a', href=re.compile('^#'))
-    # treat reference tags like a tags for TOCTOP.
-    anchorlist.extend(self._soup.find_all('reference', href=re.compile('^#')))
-    for anchor in anchorlist:
-      self._anchor_references.append((anchor_num, anchor['href']))
-      anchor['filepos'] = '%.10d' % anchor_num
-      # logger.debug("Add anchor: %s %s"%((anchor_num, anchor)))
-      del anchor['href']
-      anchor_num += 1
+        Finds all anchors with href="#myanchor" and replaces them with
+        filepos="00000000050" placeholders. Stores anchor references for
+        later replacement with actual file positions.
 
-  def _ReplaceAnchorStubs(self):
-    # TODO: Browsers allow extra whitespace in the href names.
+        Note:
+            Also handles <reference> tags which are treated like anchor tags
+            for table of contents functionality.
+        """
+        self._anchor_references: List[Tuple[int, str]] = []
+        anchor_num = 0
 
-    assembled_text = ensure_binary(unicode(self._soup))
-    # html5lib/bs4 creates close tags for <mbp:pagebreak>
-    assembled_text = assembled_text.replace(b'<mbp:pagebreak>',b'<mbp:pagebreak/>')
-    assembled_text = assembled_text.replace(b'</mbp:pagebreak>',b'')
+        # Find anchor links
+        anchorlist = self._soup.find_all('a', href=re.compile('^#'))
+        # Treat reference tags like anchor tags for TOC
+        anchorlist.extend(self._soup.find_all('reference', href=re.compile('^#')))
 
-    del self._soup # shouldn't touch this anymore
-    for anchor_num, original_ref in self._anchor_references:
-      ref = unquote(original_ref[1:]) # remove leading '#'
-      # Find the position of ref in the utf-8 document.
-      # TODO(chatham): Using regexes and looking for name= would be better.
-      newpos = assembled_text.find(b'name="'+ensure_binary(ref)) # .encode('utf-8')
-      if newpos == -1:
-        logger.warning('Could not find anchor "%s"' % original_ref)
-        continue
-      # instead of somewhere slightly *after* the <a> tag pointed to,
-      # let's go right in front of it instead by looking for the page
-      # break before it.
-      newpos = assembled_text.rfind(b'<',0,newpos)
-      # logger.debug("Anchor Pos: %s %s '%s|%s'"%((anchor_num, newpos,assembled_text[newpos-15:newpos],assembled_text[newpos:newpos+15])))
-      old_filepos = b'filepos="%.10d"' % anchor_num
-      new_filepos = b'filepos="%.10d"' % newpos
-      assert assembled_text.find(old_filepos) != -1
-      assembled_text = assembled_text.replace(old_filepos, new_filepos, 1)
-    return assembled_text
+        for anchor in anchorlist:
+            self._anchor_references.append((anchor_num, anchor['href']))
+            anchor['filepos'] = f'{anchor_num:010d}'
+            del anchor['href']
+            anchor_num += 1
 
-  def _FixPreTags(self):
-    '''Replace <pre> tags with HTML-ified text.'''
-    pres = self._soup.find_all('pre')
-    for pre in pres:
-      pre.replaceWith(self._FixPreContents(unicode(pre.contents[0])))
+    def _ReplaceAnchorStubs(self) -> bytes:
+        """Replace anchor filepos stubs with actual byte positions.
 
-  def _FixPreContents(self, text):
-    if self.unfill:
-      line_splitter = '\n\n'
-      line_joiner = '<p>'
-    else:
-      line_splitter = '\n'
-      line_joiner = '<br>'
-    lines = []
-    for line in text.split(line_splitter):
-      lines.append(self.WHITESPACE_RE.subn('&nbsp;', line)[0])
-    return line_joiner.join(lines)
+        Converts the HTML to bytes and finds the actual position of each
+        anchor target, then replaces the placeholder filepos values with
+        the actual byte offsets.
 
-  def _RemoveUnsupported(self):
-    '''Remove any tags which the kindle cannot handle.'''
-    # TODO(chatham): <link> tags to script?
-    unsupported_tags = ('script', 'style')
-    for tag_type in unsupported_tags:
-      for element in self._soup.find_all(tag_type):
-        element.extract()
+        Returns:
+            HTML content as UTF-8 bytes with actual filepos values
 
-  def RenameAnchors(self, prefix):
-    '''Rename every internal anchor to have the given prefix, then
-    return the contents of the body tag.'''
-    for anchor in self._soup.find_all('a', href=re.compile('^#')):
-      anchor['href'] = '#' + prefix + anchor['href'][1:]
-    for a in self._soup.find_all('a'):
-      if a.get('name'):
-        a['name'] = prefix + a['name']
+        Note:
+            Also fixes <mbp:pagebreak> tags to be self-closing for MOBI.
+            TODO: Browsers allow extra whitespace in href names.
+            TODO: Using regexes and looking for name= would be better.
+        """
+        assembled_text = str(self._soup).encode('utf-8')
 
-    # TODO(chatham): figure out how to fix this. sometimes body comes out
-    # as NoneType.
-    content = []
-    if self._soup.body is not None:
-      content = [unicode(c) for c in self._soup.body.contents]
-    return '\n'.join(content)
+        # html5lib/bs4 creates close tags for <mbp:pagebreak>, fix them
+        assembled_text = assembled_text.replace(b'<mbp:pagebreak>', b'<mbp:pagebreak/>')
+        assembled_text = assembled_text.replace(b'</mbp:pagebreak>', b'')
 
-  def CleanHtml(self):
-    # TODO(chatham): fix_html_br, fix_html
-    self._RemoveUnsupported()
-    self._StubInternalAnchors()
-    self._FixPreTags()
-    return self._ReplaceAnchorStubs()
+        del self._soup  # Shouldn't touch this anymore
+
+        for anchor_num, original_ref in self._anchor_references:
+            ref = unquote(original_ref[1:])  # Remove leading '#'
+
+            # Find the position of ref in the UTF-8 document
+            newpos = assembled_text.find(b'name="' + ref.encode('utf-8'))
+            if newpos == -1:
+                logger.warning(f'Could not find anchor "{original_ref}"')
+                continue
+
+            # Go right in front of the <a> tag by finding the < before it
+            newpos = assembled_text.rfind(b'<', 0, newpos)
+
+            old_filepos = f'filepos="{anchor_num:010d}"'.encode('utf-8')
+            new_filepos = f'filepos="{newpos:010d}"'.encode('utf-8')
+            assert assembled_text.find(old_filepos) != -1
+            assembled_text = assembled_text.replace(old_filepos, new_filepos, 1)
+
+        return assembled_text
+
+    def _FixPreTags(self) -> None:
+        """Replace <pre> tags with HTML-ified text.
+
+        Converts preformatted text blocks to HTML with proper spacing,
+        replacing whitespace with &nbsp; and adding line breaks or paragraphs.
+        """
+        pres = self._soup.find_all('pre')
+        for pre in pres:
+            pre.replace_with(self._FixPreContents(str(pre.contents[0])))
+
+    def _FixPreContents(self, text: str) -> str:
+        """Convert pre-formatted text to HTML with proper spacing.
+
+        Args:
+            text: Pre-formatted text content
+
+        Returns:
+            HTML-formatted text with &nbsp; for spaces and <br> or <p> tags
+
+        Note:
+            Uses <br> tags if unfill=0, <p> tags if unfill=1.
+        """
+        if self.unfill:
+            line_splitter = '\n\n'
+            line_joiner = '<p>'
+        else:
+            line_splitter = '\n'
+            line_joiner = '<br>'
+
+        lines = []
+        for line in text.split(line_splitter):
+            lines.append(self.WHITESPACE_RE.subn('&nbsp;', line)[0])
+
+        return line_joiner.join(lines)
+
+    def _RemoveUnsupported(self) -> None:
+        """Remove tags that Kindle cannot handle.
+
+        Removes <script> and <style> tags which are not supported
+        in MOBI format ebooks.
+
+        Note:
+            TODO: Consider removing <link> tags to scripts as well.
+        """
+        unsupported_tags = ('script', 'style')
+        for tag_type in unsupported_tags:
+            for element in self._soup.find_all(tag_type):
+                element.extract()
+
+    def RenameAnchors(self, prefix: str) -> str:
+        """Rename all internal anchors with the given prefix.
+
+        Adds a prefix to all anchor hrefs and names to avoid conflicts
+        when combining multiple HTML documents.
+
+        Args:
+            prefix: String to prepend to all anchor names and hrefs
+
+        Returns:
+            Contents of the body tag as a string
+
+        Note:
+            TODO: Sometimes body comes out as NoneType, need to investigate.
+        """
+        for anchor in self._soup.find_all('a', href=re.compile('^#')):
+            anchor['href'] = '#' + prefix + anchor['href'][1:]
+
+        for a in self._soup.find_all('a'):
+            if a.get('name'):
+                a['name'] = prefix + a['name']
+
+        content = []
+        if self._soup.body is not None:
+            content = [str(c) for c in self._soup.body.contents]
+
+        return '\n'.join(content)
+
+    def CleanHtml(self) -> bytes:
+        """Clean and process HTML for MOBI format.
+
+        Main processing method that orchestrates all cleaning operations:
+        1. Remove unsupported tags (script, style)
+        2. Stub internal anchors with filepos placeholders
+        3. Fix pre-formatted text blocks
+        4. Replace anchor stubs with actual byte positions
+
+        Returns:
+            Processed HTML as UTF-8 bytes ready for MOBI format
+
+        Note:
+            TODO: Implement fix_html_br and fix_html improvements.
+        """
+        self._RemoveUnsupported()
+        self._StubInternalAnchors()
+        self._FixPreTags()
+        return self._ReplaceAnchorStubs()
 
 
 if __name__ == '__main__':
