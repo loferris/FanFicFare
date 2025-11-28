@@ -1,4 +1,13 @@
-# -*- coding: utf-8 -*-
+"""URL extraction and processing utilities.
+
+This module provides functions to extract fanfiction URLs from various sources:
+- Web pages (HTML parsing)
+- Plain text (regex-based extraction)
+- Email via IMAP
+- MIME data (for Calibre drag-and-drop)
+
+It handles URL normalization, cleanup, and validation using site adapters.
+"""
 
 # Copyright 2015 Fanficdownloader team, 2020 FanFicFare team
 #
@@ -15,26 +24,22 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
 import collections
 import email
 import imaplib
-import re
-
-# unicode in py2, str in py3
-from .six.moves.urllib.request import urlopen
-from .six.moves.urllib.parse import (urlparse, urlunparse)
-from .six import text_type as unicode
-from .six import ensure_str
-
 import logging
-logger = logging.getLogger(__name__)
+import re
+from typing import Any, Dict, List, Optional, Set, Union
+from urllib.parse import urlparse, urlunparse
+from urllib.request import urlopen
 
 from bs4 import BeautifulSoup, Tag
 
 from . import adapters
 from .configurable import Configuration
 from .exceptions import UnknownSite, FetchEmailFailed
+
+logger = logging.getLogger(__name__)
 
 def get_urls_from_page(url,configuration=None,normalize=False):
     if not configuration:
@@ -69,7 +74,7 @@ def get_urls_from_html(data,url=None,configuration=None,normalize=False,foremail
         ## soup and re-soup because BS4/html5lib is more forgiving of
         ## incorrectly nested tags that way.
         # logger.debug("dbl souping")
-        soup = BeautifulSoup(unicode(BeautifulSoup(data,"html5lib")),"html5lib")
+        soup = BeautifulSoup(str(BeautifulSoup(data,"html5lib")),"html5lib")
 
     for a in soup.find_all('a'):
         if a.has_attr('href'):
@@ -98,10 +103,13 @@ def get_urls_from_html(data,url=None,configuration=None,normalize=False,foremail
 def get_urls_from_text(data,configuration=None,normalize=False,foremail=False):
     urls = collections.OrderedDict()
     try:
-        # py3 can have issues with extended chars in txt emails
-        data = ensure_str(data,errors='replace')
+        # Python 3: handle bytes data
+        if isinstance(data, bytes):
+            data = data.decode('utf8', errors='replace')
+        else:
+            data = str(data)
     except UnicodeDecodeError:
-        data = data.decode('utf8') ## for when called outside calibre.
+        data = data.decode('utf8', errors='replace')
 
     if not configuration:
         configuration = Configuration(["test1.com"],"EPUB",lightweight=True)
@@ -204,12 +212,12 @@ def get_urls_from_imap(srv,user,passwd,folder,markread=True,normalize_urls=False
         folders = []
         try:
             for f in status[1]:
-                m = re.match(r'^\(.*\) "?."? "?(?P<folder>.+?)"?$',ensure_str(f))
+                m = re.match(r'^\(.*\) "?."? "?(?P<folder>.+?)"?$',str(f))
                 if m:
                     folders.append(m.group("folder").replace("\\",""))
                     # logger.debug(folders[-1])
                 else:
-                    logger.warning("Failed to parse IMAP folder line(%s)"%ensure_str(f))
+                    logger.warning("Failed to parse IMAP folder line(%s)"%str(f))
         except:
             folders = []
             logger.warning("Failed to parse IMAP folder list, continuing without list.")
@@ -249,7 +257,7 @@ def get_urls_from_imap(srv,user,passwd,folder,markread=True,normalize_urls=False
         # including headers and alternate payloads
 
             try:
-                email_message = email.message_from_string(ensure_str(raw_email))
+                email_message = email.message_from_string(str(raw_email))
             except Exception as e:
                 logger.error("Failed decode email message: %s"%e,exc_info=True)
                 continue
