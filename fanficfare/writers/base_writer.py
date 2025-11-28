@@ -1,4 +1,11 @@
-# -*- coding: utf-8 -*-
+"""Base writer class for all story output formats.
+
+This module provides the BaseStoryWriter abstract class that serves as the foundation
+for all story format writers (EPUB, MOBI, HTML, TXT, etc.). It handles common
+functionality like metadata formatting, title pages, table of contents, and file output.
+
+All format-specific writers should inherit from this class and implement writeStoryImpl().
+"""
 
 # Copyright 2011 Fanficdownloader team, 2020 FanFicFare team
 #
@@ -14,21 +21,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from __future__ import absolute_import
 
-import os.path
 import datetime
-import string
-from zipfile import ZipFile, ZIP_DEFLATED
 import logging
-
-# py2 vs py3 transition
-from ..six import ensure_text
-from ..six import ensure_binary
+import os.path
+import string
 from io import BytesIO
+from typing import Any, BinaryIO, Callable, Optional, Union
+from zipfile import ZipFile, ZIP_DEFLATED
 
-from ..requestable import Requestable
 from ..htmlcleanup import stripHTML
+from ..requestable import Requestable
 
 logger = logging.getLogger(__name__)
 
