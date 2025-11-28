@@ -1,4 +1,9 @@
-# -*- coding: utf-8 -*-
+"""HTML writer for FanFicFare stories.
+
+This module provides the HTMLWriter class for exporting stories to standalone
+HTML files with optional table of contents, cover images, and cross-chapter
+link internalization.
+"""
 
 # Copyright 2011 Fanficdownloader team, 2019 FanFicFare team
 #
@@ -15,28 +20,59 @@
 # limitations under the License.
 #
 
-from __future__ import absolute_import
 import logging
-import string
 import re
-
-# py2 vs py3 transition
-from ..six import text_type as unicode
+import string
+from typing import Any, BinaryIO
 
 import bs4
 
 from .base_writer import BaseStoryWriter
+
+
 class HTMLWriter(BaseStoryWriter):
+    """HTML format writer for stories.
+
+    Writes stories to standalone HTML files with configurable templates,
+    optional table of contents, cover images, and support for internalizing
+    cross-chapter links.
+
+    The HTML output includes:
+        - DOCTYPE and proper HTML structure
+        - Story metadata in title page
+        - Optional table of contents (for multi-chapter stories)
+        - Chapter content with configurable formatting
+        - Support for embedded images
+        - Customizable CSS styling
+
+    All HTML templates can be overridden via configuration.
+    """
 
     @staticmethod
-    def getFormatName():
+    def getFormatName() -> str:
+        """Get the format name for this writer.
+
+        Returns:
+            Format name 'html'
+        """
         return 'html'
 
     @staticmethod
-    def getFormatExt():
+    def getFormatExt() -> str:
+        """Get the file extension for this format.
+
+        Returns:
+            File extension '.html'
+        """
         return '.html'
 
-    def __init__(self, config, story):
+    def __init__(self, config: Any, story: Any) -> None:
+        """Initialize the HTML writer.
+
+        Args:
+            config: Configuration object
+            story: Story adapter instance
+        """
         BaseStoryWriter.__init__(self, config, story)
 
         self.HTML_FILE_START = string.Template('''<!DOCTYPE html>
@@ -92,7 +128,22 @@ ${output_css}
 </html>''')
 
 
-    def writeStoryImpl(self, out):
+    def writeStoryImpl(self, out: BinaryIO) -> None:
+        """Write the HTML story content to output stream.
+
+        Generates a complete HTML document with story metadata, optional cover,
+        table of contents, and all chapter content. Supports custom templates
+        for all sections.
+
+        Args:
+            out: Output binary stream to write HTML content to
+
+        Note:
+            - Uses string.Template for all HTML sections
+            - Templates can be overridden via configuration
+            - Handles cross-chapter link internalization if configured
+            - Writes embedded images if include_images is True
+        """
         if self.hasConfig("cover_content"):
             COVER = string.Template(self.getConfig("cover_content"))
         else:
@@ -156,13 +207,13 @@ ${output_css}
                             alink['href']=chapurlmap[alink['href']]
                             changed=True
                     if changed:
-                        chap_data = unicode(soup)
+                        chap_data = str(soup)
                         # Don't want html, head or body tags in
                         # chapter html--bs4 insists on adding them.
-                        chap_data = re.sub(r"</?(html|head|body)[^>]*>\r?\n?","",chap_data)
+                        chap_data = re.sub(r"</?(html|head|body)[^>]*>\r?\n?", "", chap_data)
 
 
-                logging.debug('Writing chapter text for: %s' % chap['title'])
+                logging.debug(f"Writing chapter text for: {chap['title']}")
                 self._write(out,CHAPTER_START.substitute(chap))
                 self._write(out,chap_data)
                 self._write(out,CHAPTER_END.substitute(chap))
