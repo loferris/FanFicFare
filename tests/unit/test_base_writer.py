@@ -424,12 +424,12 @@ class TestAbstractMethod:
     """Test abstract method enforcement."""
 
     def test_base_writer_write_story_impl_not_implemented(self):
-        """Test that BaseStoryWriter.writeStoryImpl is not implemented."""
-        # BaseStoryWriter doesn't raise NotImplementedError, it just does nothing
-        # But subclasses must override it
+        """Test that BaseStoryWriter.writeStoryImpl raises NotImplementedError."""
+        # BaseStoryWriter now raises NotImplementedError
+        # Subclasses must override it
         writer = BaseStoryWriter.__new__(BaseStoryWriter)
         out = BytesIO()
 
-        # Should not raise, just do nothing
-        result = writer.writeStoryImpl(out)
-        assert result is None
+        # Should raise NotImplementedError
+        with pytest.raises(NotImplementedError, match="Subclasses must implement writeStoryImpl"):
+            writer.writeStoryImpl(out)

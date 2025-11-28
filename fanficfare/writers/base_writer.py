@@ -36,51 +36,144 @@ from ..requestable import Requestable
 logger = logging.getLogger(__name__)
 
 class BaseStoryWriter(Requestable):
+    """Base class for all story format writers.
+
+    Abstract base class that provides common functionality for writing stories
+    in various formats (EPUB, MOBI, HTML, TXT, etc.). Handles metadata formatting,
+    title pages, table of contents, and file I/O including zip output.
+
+    Subclasses must implement:
+        - getFormatName(): Return format name (e.g., 'epub', 'mobi')
+        - getFormatExt(): Return file extension (e.g., '.epub', '.mobi')
+        - writeStoryImpl(out): Write the actual story content
+
+    Attributes:
+        adapter: Story adapter instance
+        story: Story metadata/content object
+        metaonly: Whether to write only metadata (no chapters)
+        outfilename: Output filename
+        zipout: ZipFile instance when using zip output
+    """
 
     @staticmethod
-    def getFormatName():
+    def getFormatName() -> str:
+        """Get the format name for this writer.
+
+        Returns:
+            Format name string (e.g., 'epub', 'mobi', 'html')
+        """
         return 'base'
 
     @staticmethod
-    def getFormatExt():
+    def getFormatExt() -> str:
+        """Get the file extension for this format.
+
+        Returns:
+            File extension including dot (e.g., '.epub', '.mobi')
+        """
         return '.bse'
 
-    def __init__(self, configuration, adapter):
+    def __init__(self, configuration: Any, adapter: Any) -> None:
+        """Initialize the base writer.
+
+        Args:
+            configuration: Configuration object
+            adapter: Story adapter instance
+        """
         Requestable.__init__(self, configuration)
 
         self.adapter = adapter
-        self.story = adapter.getStoryMetadataOnly() # only cache the metadata initially.
+        self.story = adapter.getStoryMetadataOnly()  # Only cache metadata initially
 
-        self.story.setMetadata('formatname',self.getFormatName())
-        self.story.setMetadata('formatext',self.getFormatExt())
+        self.story.setMetadata('formatname', self.getFormatName())
+        self.story.setMetadata('formatext', self.getFormatExt())
 
-    def getMetadata(self,key, removeallentities=False):
+    def getMetadata(self, key: str, removeallentities: bool = False) -> str:
+        """Get metadata value with HTML stripped.
+
+        Args:
+            key: Metadata key to retrieve
+            removeallentities: Whether to remove all HTML entities
+
+        Returns:
+            Metadata value with HTML tags stripped
+        """
         return stripHTML(self.story.getMetadata(key, removeallentities))
 
-    def getOutputFileName(self):
+    def getOutputFileName(self) -> str:
+        """Get the output filename (zip or base depending on config).
+
+        Returns:
+            Output filename string
+        """
         if self.getConfig('zip_output'):
             return self.getZipFileName()
         else:
             return self.getBaseFileName()
 
-    def getBaseFileName(self):
-        return self.story.formatFileName(self.getConfig('output_filename'),self.getConfig('allow_unsafe_filename'))
+    def getBaseFileName(self) -> str:
+        """Get the base output filename (story file without zip).
 
-    def getZipFileName(self):
-        return self.story.formatFileName(self.getConfig('zip_filename'),self.getConfig('allow_unsafe_filename'))
-
-    def _write(self, out, text):
-        out.write(ensure_binary(text))
-
-    def includeToCPage(self):
-        return (self.getConfig("include_tocpage")=='always' or (self.story.getChapterCount() > 1 and self.getConfig("include_tocpage"))) and not self.metaonly
-
-    def writeTitlePage(self, out, START, ENTRY, END, WIDE_ENTRY=None, NO_TITLE_ENTRY=None):
+        Returns:
+            Formatted base filename
         """
-        Write the title page, but only include entries that there's
-        metadata for.  START, ENTRY and END are expected to already by
-        string.Template().  START and END are expected to use the same
-        names as Story.metadata, but ENTRY should use label and value.
+        return self.story.formatFileName(self.getConfig('output_filename'),
+                                         self.getConfig('allow_unsafe_filename'))
+
+    def getZipFileName(self) -> str:
+        """Get the zip archive filename.
+
+        Returns:
+            Formatted zip filename
+        """
+        return self.story.formatFileName(self.getConfig('zip_filename'),
+                                         self.getConfig('allow_unsafe_filename'))
+
+    def _write(self, out: BinaryIO, text: Union[str, bytes]) -> None:
+        """Write text to output stream as binary.
+
+        Args:
+            out: Output binary stream
+            text: Text to write (str or bytes)
+        """
+        if isinstance(text, str):
+            out.write(text.encode('utf-8'))
+        else:
+            out.write(text)
+
+    def includeToCPage(self) -> bool:
+        """Check if table of contents page should be included.
+
+        Returns:
+            True if TOC should be included, False otherwise
+        """
+        return ((self.getConfig("include_tocpage") == 'always' or
+                (self.story.getChapterCount() > 1 and self.getConfig("include_tocpage")))
+                and not self.metaonly)
+
+    def writeTitlePage(self,
+                       out: BinaryIO,
+                       START: string.Template,
+                       ENTRY: string.Template,
+                       END: string.Template,
+                       WIDE_ENTRY: Optional[string.Template] = None,
+                       NO_TITLE_ENTRY: Optional[string.Template] = None) -> None:
+        """Write the title page with metadata entries.
+
+        Only includes entries that have metadata values. Templates can be
+        overridden via configuration.
+
+        Args:
+            out: Output binary stream
+            START: Template for title page start (uses Story.metadata names)
+            ENTRY: Template for metadata entries (uses 'label', 'id', 'value')
+            END: Template for title page end (uses Story.metadata names)
+            WIDE_ENTRY: Optional template for wide entries (table columns)
+            NO_TITLE_ENTRY: Optional template for entries without labels
+
+        Note:
+            Templates can be overridden via config: titlepage_start, titlepage_entry,
+            titlepage_end, titlepage_wide_entry, titlepage_no_title_entry
         """
         if self.getConfig("include_titlepage"):
 
@@ -138,13 +231,26 @@ class BaseStoryWriter(Requestable):
 
             self._write(out,END.substitute(self.story.getAllMetadata()))
 
-    def writeTOCPage(self, out, START, ENTRY, END):
+    def writeTOCPage(self,
+                     out: BinaryIO,
+                     START: string.Template,
+                     ENTRY: string.Template,
+                     END: string.Template) -> None:
+        """Write the table of contents page.
+
+        Only writes TOC if there are multiple chapters and it's configured.
+        Templates can be overridden via configuration.
+
+        Args:
+            out: Output binary stream
+            START: Template for TOC start (uses Story.metadata names)
+            ENTRY: Template for chapter entries (uses chapter dict keys)
+            END: Template for TOC end (uses Story.metadata names)
+
+        Note:
+            Templates can be overridden via config: tocpage_start, tocpage_entry, tocpage_end
         """
-        Write the Table of Contents page.  START, ENTRY and END are expected to already by
-        string.Template().  START and END are expected to use the same
-        names as Story.metadata, but ENTRY should use index and chapter.
-        """
-        # Only do TOC if there's more than one chapter and it's configured.
+        # Only do TOC if there's more than one chapter and it's configured
         if self.includeToCPage():
             if self.hasConfig("tocpage_start"):
                 START = string.Template(self.getConfig("tocpage_start"))
@@ -163,13 +269,31 @@ class BaseStoryWriter(Requestable):
 
             self._write(out,END.substitute(self.story.getAllMetadata()))
 
-    # if no outstream is given, write to file.
     def writeStory(self,
-                   outstream=None,
-                   metaonly=False,
-                   outfilename=None,
-                   forceOverwrite=False,
-                   notification=lambda x,y:x):
+                   outstream: Optional[BinaryIO] = None,
+                   metaonly: bool = False,
+                   outfilename: Optional[str] = None,
+                   forceOverwrite: bool = False,
+                   notification: Callable[[Any, Any], Any] = lambda x, y: x) -> None:
+        """Write the complete story to output stream or file.
+
+        Main entry point for story writing. Handles both file and stream output,
+        with optional zip compression. Fetches full story content unless metaonly
+        is True. Checks file modification dates to avoid overwriting newer files.
+
+        Args:
+            outstream: Optional output binary stream. If None, writes to file.
+            metaonly: If True, only write metadata (no chapter content).
+            outfilename: Output filename. If None, uses getOutputFileName().
+            forceOverwrite: If True, overwrite existing files regardless of date.
+            notification: Callback for progress notifications (chapter_num, total).
+
+        Note:
+            - If outstream is None, writes to file specified by outfilename
+            - Creates parent directories if make_directories config is True
+            - Skips writing if existing file is newer than story update date
+            - Supports zip output when zip_output config is True
+        """
 
         self.metaonly = metaonly
         if outfilename == None:
@@ -194,10 +318,12 @@ class BaseStoryWriter(Requestable):
 
         if not outstream:
             close=True
-            logger.info("Save directly to file: %s" % outfilename)
+            logger.info(f"Save directly to file: {outfilename}")
             if self.getConfig('make_directories'):
                 path=""
-                outputdirs = os.path.dirname(ensure_text(outfilename)).split('/')
+                # Ensure outfilename is a string (should already be from type hint)
+                outfilename_str = outfilename if isinstance(outfilename, str) else str(outfilename)
+                outputdirs = os.path.dirname(outfilename_str).split('/')
                 for dir in outputdirs:
                     path+=dir+"/"
                     if not os.path.exists(path):
@@ -210,7 +336,7 @@ class BaseStoryWriter(Requestable):
                     lastupdated=self.story.getMetadataRaw('dateUpdated').date()
                     fileupdated=datetime.datetime.fromtimestamp(os.stat(outfilename)[8]).date()
                     if fileupdated > lastupdated:
-                        logger.warning("File(%s) Updated(%s) more recently than Story(%s) - Skipping" % (outfilename,fileupdated,lastupdated))
+                        logger.warning(f"File({outfilename}) Updated({fileupdated}) more recently than Story({lastupdated}) - Skipping")
                         return
             if not metaonly:
                 # get full story now, just before writing.  Fetch
@@ -242,8 +368,22 @@ class BaseStoryWriter(Requestable):
         if close:
             outstream.close()
 
-    def writeFile(self, filename, data):
-        logger.debug("writeFile:%s"%filename)
+    def writeFile(self, filename: str, data: bytes) -> None:
+        """Write a file to output (standalone file or zip archive).
+
+        Helper method for writing additional files like images, CSS, or
+        metadata files. Handles both zip and non-zip output modes.
+
+        Args:
+            filename: Output filename (relative to story file)
+            data: Binary file content to write
+
+        Note:
+            - In zip mode, files are added to the zip archive
+            - In non-zip mode, files are written alongside the story file
+            - Automatically creates parent directories if needed
+        """
+        logger.debug(f"writeFile: {filename}")
 
         if self.getConfig('zip_output'):
             outputdirs = os.path.dirname(self.getBaseFileName())
@@ -263,5 +403,23 @@ class BaseStoryWriter(Requestable):
             outstream.write(data)
             outstream.close()
 
-    def writeStoryImpl(self, out):
-        "Must be overriden by sub classes."
+    def writeStoryImpl(self, out: BinaryIO) -> None:
+        """Write format-specific story content (must be overridden by subclasses).
+
+        Abstract method that subclasses must implement to write the actual
+        story content in the specific format (EPUB, MOBI, HTML, TXT, etc.).
+
+        Args:
+            out: Output binary stream to write story content to
+
+        Raises:
+            NotImplementedError: If subclass doesn't implement this method
+
+        Note:
+            This is an abstract method. Subclasses should:
+            - Write complete story content to the output stream
+            - Use self.story for accessing metadata and chapters
+            - Call writeTitlePage/writeTOCPage as appropriate
+            - Handle format-specific formatting and structure
+        """
+        raise NotImplementedError("Subclasses must implement writeStoryImpl()")
